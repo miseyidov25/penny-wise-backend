@@ -37,11 +37,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        $user = $request->user();
-
-        return response()->json([
-            'token' => $user->createToken('API Token')->plainTextToken,
-            'user' => $user,
-        ]);
+        return response()->noContent();
     }
 }
