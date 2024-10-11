@@ -9,3 +9,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/user', [UserController::class, 'deleteAccount']);
     Route::get('/user', [UserController::class, 'getUser']);
 });
+
+
