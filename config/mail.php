@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'default' => env('MAIL_MAILER', 'log'),
+    'default' => env('MAIL_MAILER', 'mailersend'),
 
     /*
     |--------------------------------------------------------------------------
@@ -93,6 +93,11 @@ return [
                 'ses',
                 'postmark',
             ],
+        ],
+
+        'mailersend' => [
+            'transport' => 'mailersend',
+            'key' => env('MAILERSEND_API_KEY'),
         ],
 
     ],
