@@ -16,3 +16,5 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::apiResource('wallets', WalletController::class)->middleware('auth');
 Route::resource('categories', CategoryController::class)->middleware('auth');
 Route::resource('transactions', TransactionController::class)->middleware('auth');
+
+Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('auth', 'admin');
