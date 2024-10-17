@@ -19,19 +19,30 @@ class TransactionController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'category_id' => 'required|exists:categories,id',
+            'category_name' => 'required|string',
             'amount' => 'required|numeric',
             'description' => 'nullable|string',
             'date' => 'required|date',
         ]);
 
+        // Find the category by name or create it if it doesn't exist
+        $category = Category::firstOrCreate(
+            [
+                'name' => $request->category_name,
+                'user_id' => Auth::id(),
+                // Associate the category with the current user
+            ]
+        );
+
+
         Transaction::create([
             'user_id' => Auth::id(),
-            'category_id' => $request->category_id,
+            'category_id' => $category->id,
             'amount' => $request->amount,
             'description' => $request->description,
             'date' => $request->date,
         ]);
+
 
         return redirect()->route('transactions.index')->with('success', 'Transaction created successfully.');
     }

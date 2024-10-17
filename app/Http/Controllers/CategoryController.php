@@ -11,7 +11,6 @@ class CategoryController extends Controller
     public function index()
     {
         $categories = Category::where('user_id', Auth::id())->get();
-
         return response()->json($categories);
     }
 
@@ -31,6 +30,11 @@ class CategoryController extends Controller
 
     public function update(Request $request, Category $category)
     {
+        // Ensure the category belongs to the authenticated user
+        if ($category->user_id !== Auth::id()) {
+            return redirect()->route('categories.index')->with('error', 'Unauthorized action.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
         ]);
@@ -44,6 +48,11 @@ class CategoryController extends Controller
 
     public function destroy(Category $category)
     {
+        // Ensure the category belongs to the authenticated user
+        if ($category->user_id !== Auth::id()) {
+            return redirect()->route('categories.index')->with('error', 'Unauthorized action.');
+        }
+
         $category->delete();
 
         return redirect()->route('categories.index')->with('success', 'Category deleted successfully.');
