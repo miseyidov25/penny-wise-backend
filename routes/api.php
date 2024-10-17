@@ -7,8 +7,10 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
 
-Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
-    return $request->user();
+Route::middleware('auth:sanctum')->group(function () {
+    Route::put('/user', [UserController::class, 'updateProfile']);
+    Route::delete('/user', [UserController::class, 'deleteAccount']);
+    Route::get('/user', [UserController::class, 'getUser']);
 });
 
 Route::apiResource('wallets', WalletController::class)->middleware('auth');
