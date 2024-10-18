@@ -31,10 +31,14 @@ class WalletController extends Controller
             'name' => 'required|string|max:255',
             'balance' => 'required|numeric'
         ]);
-    
-        $wallet = Wallet::create($validated);
-    
-        return response()->json($wallet, 201);
+        
+        try {
+            $wallet = Wallet::create($validated);
+            return response()->json(['message' => 'Wallet created successfully']);
+            return response()->json($wallet, 201);
+        } catch (QueryException $e) {
+            return response()->json(['error' => 'A wallet with this name already exists'], 409);
+        }
     }
     
     /**
@@ -52,8 +56,10 @@ class WalletController extends Controller
     public function update(Request $request, Wallet $wallet)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'balance' => 'required|numeric'
+            'name' => 'required|string|max:255|unique:wallets,name,' . $wallet->id,
+            'balance' => 'required|numeric',
+        ], [
+            'name.unique' => 'A wallet with this name already exists.',
         ]);
     
         $wallet->update($validated);

@@ -20,12 +20,15 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        Category::create([
-            'user_id' => Auth::id(),
-            'name' => $request->name,
-        ]);
-
-        return redirect()->route('categories.index')->with('success', 'Category created successfully.');
+        try {
+            Category::create([
+                'user_id' => Auth::id(),
+                'name' => $request->name,
+            ]);
+            return redirect()->route('categories.index')->with('success', 'Category created successfully.');
+        } catch (QueryException $e) {
+            return response()->json(['error' => 'A category with this name already exists'], 409);
+        }
     }
 
     public function update(Request $request, Category $category)
@@ -36,7 +39,9 @@ class CategoryController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
+        ], [
+            'name.unique' => 'A category with this name already exists.',
         ]);
 
         $category->update([
