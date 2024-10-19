@@ -46,6 +46,10 @@ class WalletController extends Controller
      */
     public function show(Wallet $wallet)
     {
+        // Download related transactions for wallet
+        $wallet->load('transactions');
+
+        // Return a JSON response with the wallet and its transactions
         return response()->json($wallet);
     }
     
