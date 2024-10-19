@@ -29,7 +29,8 @@ class WalletController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'balance' => 'required|numeric'
+            'balance' => 'required|numeric',
+            'currency' => 'required|string|size:3'
         ]);
         
         try {
@@ -62,6 +63,7 @@ class WalletController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:wallets,name,' . $wallet->id,
             'balance' => 'required|numeric',
+            'currency' => 'required|string|size:3'
         ], [
             'name.unique' => 'A wallet with this name already exists.',
         ]);
