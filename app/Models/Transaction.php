@@ -12,10 +12,12 @@ class Transaction extends Model
     protected $fillable = [
         'user_id',
         'category_id',
+        'category_name',
         'wallet_id',
         'amount',
         'description',
         'date',
+        'currency'
     ];
 
     // Define relationships

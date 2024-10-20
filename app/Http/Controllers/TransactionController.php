@@ -64,6 +64,7 @@ class TransactionController extends Controller
             'amount' => $request->amount,
             'description' => $request->description,
             'date' => $request->date,
+            'currency' => $wallet->currency,
         ]);
 
 
