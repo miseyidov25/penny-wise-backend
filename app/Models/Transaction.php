@@ -12,9 +12,12 @@ class Transaction extends Model
     protected $fillable = [
         'user_id',
         'category_id',
+        'category_name',
+        'wallet_id',
         'amount',
         'description',
         'date',
+        'currency'
     ];
 
     // Define relationships
@@ -26,5 +29,10 @@ class Transaction extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function wallet()
+    {
+        return $this->belongsTo(Wallet::class);
     }
 }

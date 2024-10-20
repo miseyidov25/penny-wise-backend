@@ -9,21 +9,21 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up()
+    public function up(): void
     {
-        Schema::create('wallets', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->decimal('balance', 15, 2)->default(0);
-            $table->timestamps();
+        Schema::table('wallets', function (Blueprint $table) {
+            $table->string('currency', 3)->default('USD'); // add a field for currency
         });
+        
     }
-    
+
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('wallets');
+        Schema::table('wallets', function (Blueprint $table) {
+            //
+        });
     }
 };
