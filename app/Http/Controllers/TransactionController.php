@@ -104,6 +104,17 @@ class TransactionController extends Controller
             'description' => 'nullable|string',
             'date' => 'required|date',
         ]);
+        
+        // Найдите транзакцию
+        $transaction = Transaction::findOrFail($id);
+
+        // Найдите или создайте категорию
+        $category = Category::firstOrCreate(
+            [
+                'name' => $request->category_name,
+                'user_id' => Auth::id(),
+            ]
+        );
 
         $wallet = Wallet::find($request->wallet_id);
 
@@ -129,12 +140,21 @@ class TransactionController extends Controller
 
         $transaction->update([
             'category_id' => $request->category_id,
+            'wallet_id' => $wallet->id,
             'amount' => $request->amount,
             'description' => $request->description,
             'date' => $request->date,
         ]);
 
-        return redirect()->route('transactions.index')->with('success', 'Transaction updated successfully.');
+        return response()->json([
+            'message' => 'Transaction updated succesfully',
+            'id' => $transaction->id,
+            'amount' => $transaction->amount,
+            'description' => $transaction->description,
+            'date' => $transaction->date,
+            'category_name' => $category->name,
+            'wallets' => $wallets,
+        ]);
     }
 
     public function destroy(Transaction $transaction)
@@ -153,6 +173,16 @@ class TransactionController extends Controller
         // Delete the transaction
         $transaction->delete();
 
-        return redirect()->route('transactions.index')->with('success', 'Transaction deleted successfully.');
+        return response()->json([
+            'message' => 'Transaction deleted successfully.',
+            'transaction' => [
+                'id' => $transaction->id,
+                'amount' => $transaction->amount,
+                'description' => $transaction->description,
+                'date' => $transaction->date,
+                'category_name' => $transaction->category->name,
+                'wallets' => $wallets,
+            ],
+        ]);
     }
 }
