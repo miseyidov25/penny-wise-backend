@@ -70,8 +70,6 @@ class WalletController extends Controller
         // Возвращаем JSON ответ с кошельком и его транзакциями
         return response()->json($walletData);
     }
-    
-    
 
     /**
      * Update the specified resource in storage.
