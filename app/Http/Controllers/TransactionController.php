@@ -134,7 +134,7 @@ class TransactionController extends Controller
             'date' => $request->date,
         ]);
 
-        $wallets = Wallet::where('user_id', Auth::id())->get();
+        $linkedWallet = Wallet::find($transaction->wallet_id);
 
         return response()->json([
             'message' => 'Transaction updated succesfully',
@@ -143,7 +143,7 @@ class TransactionController extends Controller
             'description' => $transaction->description,
             'date' => $transaction->date,
             'category_name' => $category->name,
-            'wallets' => $wallets,
+            'wallet' => $linkedWallet,
         ]);
     }
 
@@ -163,7 +163,7 @@ class TransactionController extends Controller
         // Delete the transaction
         $transaction->delete();
 
-        $wallets = Wallet::where('user_id', Auth::id())->get();
+        $linkedWallet = Wallet::find($transaction->wallet_id);
 
         
         return response()->json([
@@ -174,7 +174,7 @@ class TransactionController extends Controller
                 'description' => $transaction->description,
                 'date' => $transaction->date,
                 'category_name' => $transaction->category->name,
-                'wallets' => $wallets,
+                'wallet' => $linkedWallet,
             ],
         ]);
     }
