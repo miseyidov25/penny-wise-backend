@@ -149,6 +149,8 @@ class TransactionController extends Controller
 
     public function destroy(Transaction $transaction)
     {
+
+        $transaction = Transaction::findOrFail($id);
         // Adjust the wallet balance when a transaction is deleted
         $wallet = Wallet::find($transaction->wallet_id);
 
@@ -160,10 +162,9 @@ class TransactionController extends Controller
 
         $wallet->save();
 
+        $linkedWallet = Wallet::find($transaction->wallet_id);
         // Delete the transaction
         $transaction->delete();
-
-        $linkedWallet = Wallet::find($transaction->wallet_id);
 
         
         return response()->json([
