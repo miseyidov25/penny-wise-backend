@@ -12,9 +12,17 @@ class TransactionController extends Controller
 {
     public function index()
     {
-        $transactions = Transaction::where('user_id', Auth::id())->get();
+        $transactions = Transaction::with('category')->where('user_id', Auth::id())->get();
 
-        return response()->json($transactions);
+        return response()->json($transactions->map(function($transaction) {
+            return [
+                'id' => $transaction->id,
+                'amount' => $transaction->amount,
+                'description' => $transaction->description,
+                'date' => $transaction->date,
+                'category_name' => $transaction->category ? $transaction->category->name : null, // Получаем имя категории
+            ];
+        }));
     }
 
     public function store(Request $request)
