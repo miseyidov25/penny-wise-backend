@@ -60,6 +60,7 @@ class TransactionController extends Controller
         Transaction::create([
             'user_id' => Auth::id(),
             'category_id' => $category->id,
+            'category_name' => $category->name,
             'wallet_id' => $wallet->id,
             'amount' => $request->amount,
             'description' => $request->description,
@@ -68,7 +69,12 @@ class TransactionController extends Controller
         ]);
 
 
-        return redirect()->route('transactions.index')->with('success', 'Transaction created successfully.');
+        // Return the list of wallets as a response
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaction created successfully',
+            'wallets' => $wallets,
+        ], 201); // 201 status for resource creation
     }
 
     public function update(Request $request, Transaction $transaction)
