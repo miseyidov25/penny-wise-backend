@@ -51,20 +51,8 @@ class TransactionController extends Controller
         $isExpense = $request->amount < 0;
         
         // Adjust the wallet balance
-        if ($isExpense) {
-            if ($wallet->balance >= abs($request->amount)) {
-                // Deduct the amount for an expense
-                $wallet->balance -= abs($request->amount);
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Insufficient funds in the selected wallet.',
-                ], 400); // Return error response for insufficient funds
-            }
-        } else {
-            // Add the amount for income
-            $wallet->balance += $request->amount;
-        }
+        $wallet->balance -= abs($request->amount);
+
 
         $wallet->save();  // Save the updated wallet balance
 
@@ -153,7 +141,6 @@ class TransactionController extends Controller
             'description' => $transaction->description,
             'date' => $transaction->date,
             'category_name' => $category->name,
-            'wallets' => $wallets,
         ]);
     }
 
@@ -181,7 +168,6 @@ class TransactionController extends Controller
                 'description' => $transaction->description,
                 'date' => $transaction->date,
                 'category_name' => $transaction->category->name,
-                'wallets' => $wallets,
             ],
         ]);
     }
