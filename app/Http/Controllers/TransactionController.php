@@ -138,7 +138,6 @@ class TransactionController extends Controller
 
         return response()->json([
             'message' => 'Transaction updated succesfully',
-            'id' => $transaction->id,
             'amount' => $transaction->amount,
             'description' => $transaction->description,
             'date' => $transaction->date,
@@ -169,14 +168,11 @@ class TransactionController extends Controller
         
         return response()->json([
             'message' => 'Transaction deleted successfully.',
-            'transaction' => [
-                'id' => $transaction->id,
-                'amount' => $transaction->amount,
-                'description' => $transaction->description,
-                'date' => $transaction->date,
-                'category_name' => $transaction->category->name,
-                'wallet' => $linkedWallet,
-            ],
+            'amount' => $transaction->amount,
+            'description' => $transaction->description,
+            'date' => $transaction->date,
+            'category_name' => $transaction->category->name,
+            'wallet' => $linkedWallet,
         ]);
     }
 }

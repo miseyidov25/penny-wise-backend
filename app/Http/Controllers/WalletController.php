@@ -47,12 +47,30 @@ class WalletController extends Controller
      */
     public function show(Wallet $wallet)
     {
-        // Download related transactions for wallet
-        $wallet->load('transactions');
-
-        // Return a JSON response with the wallet and its transactions
-        return response()->json($wallet);
+        // Загрузите транзакции вместе с категориями
+        $wallet->load('transactions.category');
+    
+        // Преобразуем данные в удобный формат для ответа
+        $walletData = [
+            'id' => $wallet->id,
+            'name' => $wallet->name,
+            'balance' => $wallet->balance,
+            'currency' => $wallet->currency,
+            'transactions' => $wallet->transactions->map(function($transaction) {
+                return [
+                    'id' => $transaction->id,
+                    'amount' => $transaction->amount,
+                    'description' => $transaction->description,
+                    'date' => $transaction->date,
+                    'category_name' => $transaction->category->name ?? 'No Category',
+                ];
+            }),
+        ];
+    
+        // Возвращаем JSON ответ с кошельком и его транзакциями
+        return response()->json($walletData);
     }
+    
     
 
     /**
