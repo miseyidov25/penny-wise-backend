@@ -58,23 +58,25 @@ class TransactionController extends Controller
             $wallet->balance += $request->amount;
         }
 
-    $wallet->save();  // Save the updated wallet balance
+        $wallet->save();  // Save the updated wallet balance
 
-        Transaction::create([
+        $transaction = Transaction::create([
             'user_id' => Auth::id(),
             'category_id' => $category->id,
             'wallet_id' => $wallet->id,
             'amount' => $request->amount,
-            'description' => $request->description,
+            'description' => $request->description, 
             'date' => $request->date,
             'currency' => $wallet->currency,
         ]);
 
+        // Get all wallets for the authorized user
+        $wallets = Wallet::where('user_id', Auth::id())->get();
 
-        // Return the list of wallets as a response
+        // Return a response with an array of wallets and the category name
         return response()->json([
             'success' => true,
-            'message' => 'Транзакция успешно создана.',
+            'message' => 'Transaction created succesfully.',
             'transaction' => [
                 'amount' => $transaction->amount,
                 'category_name' => $category->name,  // Вернуть имя категории
@@ -82,7 +84,7 @@ class TransactionController extends Controller
                 'currency' => $transaction->currency,
             ],
             'wallets' => $wallets,  // Вернуть массив всех кошельков
-        ], 201); // Статус 201 для создания ресурса
+        ], 201);
     }
 
     public function update(Request $request, Transaction $transaction)
