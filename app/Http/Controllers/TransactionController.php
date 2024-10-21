@@ -48,7 +48,10 @@ class TransactionController extends Controller
                 // Deduct the amount for an expense
                 $wallet->balance -= abs($request->amount);
             } else {
-                return redirect()->back()->withErrors(['Insufficient funds in the selected wallet.']);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Insufficient funds in the selected wallet.',
+                ], 400); // Return error response for insufficient funds
             }
         } else {
             // Add the amount for income
@@ -60,7 +63,6 @@ class TransactionController extends Controller
         Transaction::create([
             'user_id' => Auth::id(),
             'category_id' => $category->id,
-            'category_name' => $category->name,
             'wallet_id' => $wallet->id,
             'amount' => $request->amount,
             'description' => $request->description,
@@ -72,9 +74,15 @@ class TransactionController extends Controller
         // Return the list of wallets as a response
         return response()->json([
             'success' => true,
-            'message' => 'Transaction created successfully',
-            'wallets' => $wallets,
-        ], 201); // 201 status for resource creation
+            'message' => 'Транзакция успешно создана.',
+            'transaction' => [
+                'amount' => $transaction->amount,
+                'category_name' => $category->name,  // Вернуть имя категории
+                'wallet_id' => $transaction->wallet_id,
+                'currency' => $transaction->currency,
+            ],
+            'wallets' => $wallets,  // Вернуть массив всех кошельков
+        ], 201); // Статус 201 для создания ресурса
     }
 
     public function update(Request $request, Transaction $transaction)
