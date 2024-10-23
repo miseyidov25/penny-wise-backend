@@ -19,7 +19,7 @@ class UserController extends Controller
             'name' => 'nullable|string|max:255',
             'email' => 'nullable|email|unique:users,email,' . $user->id,
             'current_password' => 'required_with:password|string',
-            'password' => 'nullable|string|min:8|confirmed',
+            'password' => 'nullable|string|min:8|confirmed|required_with:current_password',
         ]);
 
         if ($validator->fails()) {
@@ -37,17 +37,16 @@ class UserController extends Controller
         }
 
         // Check if the password is present and update it
-        if ($request->has('password')) {
+        if ($request->has('password') && !empty($request->password)) {
             if (!Hash::check($request->current_password, $user->password)) {
                 return response()->json([
-                    'message' => 'Current password is not correct.'
-                ], 403); // Atgriezt kļūdas ziņu, ja vecā parole nav pareiza
+                    'message' => 'The current password is incorrect.'
+                ], 403); // Return error if the current password is incorrect
             }
     
-            // Ja vecā parole ir pareiza, tad uzstādīt jauno paroli
+            // If the current password is correct and a new password is provided, set the new password
             $user->password = Hash::make($request->password);
         }
-
         // Save the updated user information
         $user->save();
 
