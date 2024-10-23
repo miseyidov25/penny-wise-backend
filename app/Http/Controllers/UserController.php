@@ -18,6 +18,7 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'nullable|string|max:255',
             'email' => 'nullable|email|unique:users,email,' . $user->id,
+            'current_password' => 'required_with:password|string',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 
@@ -37,6 +38,13 @@ class UserController extends Controller
 
         // Check if the password is present and update it
         if ($request->has('password')) {
+            if (!Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'message' => 'Current password is not correct.'
+                ], 403); // Atgriezt kļūdas ziņu, ja vecā parole nav pareiza
+            }
+    
+            // Ja vecā parole ir pareiza, tad uzstādīt jauno paroli
             $user->password = Hash::make($request->password);
         }
 
