@@ -3,12 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+<<<<<<< HEAD
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
+=======
+use Illuminate\Support\Facades\Auth;
+
+>>>>>>> b0f3939c75048a8119ad16856067672ac8c93560
 
 class UserController extends Controller
 {
