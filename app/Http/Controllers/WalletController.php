@@ -32,8 +32,8 @@ class WalletController extends Controller
             'currency' => $primaryCurrency,
         ]);
     }
-
     
+
     /**
      * Store a newly created resource in storage.
      */
@@ -59,7 +59,7 @@ class WalletController extends Controller
             'balance' => 'required|numeric',
             'currency' => 'required|string|size:3',
         ]);
-    
+        
         try {
             // Add the authenticated user's ID to the wallet data
             $validated['user_id'] = Auth::id();
@@ -79,7 +79,6 @@ class WalletController extends Controller
             return response()->json(['error' => 'A wallet with this name already exists'], 409);
         }
     }
-    
     
     /**
      * Display the specified resource.
