@@ -30,20 +30,29 @@ class WalletController extends Controller
      */
     public function store(Request $request)
     {
+        // Validate the request data
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'balance' => 'required|numeric',
-            'currency' => 'required|string|size:3'
+            'currency' => 'required|string|size:3',
         ]);
-        
+    
         try {
+            // Add the authenticated user's ID to the wallet data
+            $validated['user_id'] = Auth::id();
+    
+            // Create the wallet
             $wallet = Wallet::create($validated);
-            return response()->json(['message' => 'Wallet created successfully']);
+    
+            // Return a JSON response with the created wallet and a 201 status
             return response()->json($wallet, 201);
+    
         } catch (QueryException $e) {
+            // Handle the case where a wallet with the same name already exists
             return response()->json(['error' => 'A wallet with this name already exists'], 409);
         }
     }
+    
     
     /**
      * Display the specified resource.
