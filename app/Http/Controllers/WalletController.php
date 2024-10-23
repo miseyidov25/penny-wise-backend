@@ -12,7 +12,8 @@ class WalletController extends Controller
      */
     public function index()
     {
-        $wallets = Wallet::all();
+        // Get the wallets associated with the authenticated user
+        $wallets = Wallet::where('user_id', Auth::id())->get(); 
         $totalBalance = $wallets->sum('balance');
     
         return response()->json([
