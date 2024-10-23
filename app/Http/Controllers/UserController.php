@@ -62,8 +62,12 @@ class UserController extends Controller
     {
         $user = auth()->user();
 
-         // Log out the user
-        auth()->logout();
+        // Log out the user
+        Auth::guard('web')->logout();
+
+        $request->session()->invalidate();
+
+        $request->session()->regenerateToken();
 
         // Delete the user's account
         $user->delete();
