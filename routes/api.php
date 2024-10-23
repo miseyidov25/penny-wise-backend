@@ -9,7 +9,7 @@ use App\Http\Controllers\UserController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user', [UserController::class, 'updateProfile']);
-    Route::delete('/user', [UserController::class, 'deleteAccount']);
+    Route::delete('/user', [UserController::class, 'deleteAccount'])->name('user.delete');
     Route::get('/user', [UserController::class, 'getUser']);
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('admin');
 });

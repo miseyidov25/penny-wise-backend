@@ -6,13 +6,16 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
 class UserController extends Controller
 {
     // Function to update user info
     public function updateProfile(Request $request)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         // Validate each field only if it is present in the request
         $validator = Validator::make($request->all(), [
@@ -58,19 +61,18 @@ class UserController extends Controller
 
 
     // Function to delete user account
-    public function deleteAccount()
+    public function deleteAccount(Request $request)
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         // Log out the user
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         // Delete the user's account
-        $user->delete();
+        User::where('id', $user->id)->delete();
 
         return response()->json([
             'message' => 'Account deleted successfully'
