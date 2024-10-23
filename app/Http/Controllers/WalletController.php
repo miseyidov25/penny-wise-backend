@@ -16,6 +16,8 @@ class WalletController extends Controller
     {
         // Get the wallets associated with the authenticated user
         $wallets = Wallet::where('user_id', Auth::id())->get(); 
+
+        // Calculate the total balance of all the user's wallets
         $totalBalance = $wallets->sum('balance');
     
         return response()->json([
@@ -59,6 +61,11 @@ class WalletController extends Controller
      */
     public function show(Wallet $wallet)
     {
+        // Ensure the wallet belongs to the authenticated user
+        if ($wallet->user_id !== Auth::id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        
         // Загрузите транзакции вместе с категориями
         $wallet->load('transactions.category');
     
@@ -88,19 +95,36 @@ class WalletController extends Controller
      * Update the specified resource in storage.
      */
     public function update(Request $request, Wallet $wallet)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:wallets,name,' . $wallet->id,
-            'balance' => 'required|numeric',
-            'currency' => 'required|string|size:3'
-        ], [
-            'name.unique' => 'A wallet with this name already exists.',
-        ]);
-    
-        $wallet->update($validated);
-    
-        return response()->json($wallet);
+{
+    // Ensure the wallet belongs to the authenticated user
+    if ($wallet->user_id !== Auth::id()) {
+        return response()->json(['error' => 'Unauthorized'], 403);
     }
+
+    // Validate the incoming request
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'balance' => 'required|numeric',
+        'currency' => 'required|string|size:3',
+    ]);
+
+    // Update the wallet
+    $wallet->update($validated);
+
+    // Get all wallets associated with the authenticated user
+    $wallets = Wallet::where('user_id', Auth::id())->get();
+
+    // Calculate the total balance for all wallets
+    $totalBalance = $wallets->sum('balance');
+
+    // Return all wallets and the total balance in a JSON response
+    return response()->json([
+        'wallets' => $wallets,
+        'total_balance' => $totalBalance,
+    ]);
+}
+
+    
     
 
     /**
@@ -108,9 +132,25 @@ class WalletController extends Controller
      */
     public function destroy(Wallet $wallet)
     {
+        // Ensure the wallet belongs to the authenticated user
+        if ($wallet->user_id !== Auth::id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+    
+        // Delete the wallet
         $wallet->delete();
     
-        return response()->json(['message' => 'Wallet deleted successfully.']);
+        // Get all wallets associated with the authenticated user
+        $wallets = Wallet::where('user_id', Auth::id())->get();
+    
+        // Calculate the total balance for all wallets
+        $totalBalance = $wallets->sum('balance');
+    
+        // Return all wallets and the total balance in a JSON response
+        return response()->json([
+            'wallets' => $wallets,
+            'total_balance' => $totalBalance,
+        ]);
     }
     
 }
