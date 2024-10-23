@@ -61,7 +61,7 @@ class UserController extends Controller
 
 
     // Function to delete user account
-    public function deleteAccount()
+    public function deleteAccount(Request $request)
     {
         $user = auth()->user();
 
