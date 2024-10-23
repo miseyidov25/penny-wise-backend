@@ -9,7 +9,7 @@ class Wallet extends Model
 {
     use HasFactory;
     
-    protected $fillable = ['name', 'balance', 'currency'];
+    protected $fillable = ['name', 'balance', 'currency', 'user_id'];
 
     public function transactions()
     {

@@ -26,130 +26,131 @@ class TransactionController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'category_name' => 'required|string',
-            'wallet_id' => 'required|exists:wallets,id',
-            'amount' => 'required|numeric',
-            'description' => 'nullable|string',
-            'date' => 'required|date',
-        ]);
+{
+    // Validate incoming request
+    $validated = $request->validate([
+        'wallet_id' => 'required|exists:wallets,id',
+        'category_id' => 'required|exists:categories,id',
+        'amount' => 'required|numeric',
+        'description' => 'nullable|string',
+        'date' => 'required|date',
+    ]);
 
-        // Find the category by name or create it if it doesn't exist
-        $category = Category::firstOrCreate(
-            [
-                'name' => $request->category_name,
-                'user_id' => Auth::id(),
-                // Associate the category with the current user
-            ]
-        );
+    // Ensure the wallet belongs to the authenticated user
+    $wallet = Wallet::where('id', $validated['wallet_id'])
+                    ->where('user_id', Auth::id())
+                    ->firstOrFail(); // This will throw a 404 if the wallet doesn't belong to the user
 
-        // Get the selected wallet
-        $wallet = Wallet::find($request->wallet_id);
+    // Ensure the category belongs to the authenticated user
+    $category = Category::where('id', $validated['category_id'])
+                        ->where('user_id', Auth::id())
+                        ->firstOrFail(); // This will throw a 404 if the category doesn't belong to the user
 
-        // Check if it's an expense or income (assuming negative amount for expenses)
-        $isExpense = $request->amount < 0;
-        
-        // Adjust the wallet balance
-        $wallet->balance -= abs($request->amount);
+    // Check if it's an expense or income (assuming negative amount for expenses)
+    $isExpense = $validated['amount'] < 0;
 
-
-        $wallet->save();  // Save the updated wallet balance
-
-        $transaction = Transaction::create([
-            'user_id' => Auth::id(),
-            'category_id' => $category->id,
-            'wallet_id' => $wallet->id,
-            'amount' => $request->amount,
-            'description' => $request->description, 
-            'date' => $request->date,
-            'currency' => $wallet->currency,
-        ]);
-
-        // Get all wallets for the authorized user
-        $wallets = Wallet::where('user_id', Auth::id())->get();
-
-        // Return a response with an array of wallets and the category name
-        return response()->json([
-            'success' => true,
-            'message' => 'Transaction created succesfully.',
-            'transaction' => [
-                'amount' => $transaction->amount,
-                'category_name' => $category->name,  // Вернуть имя категории
-                'wallet_id' => $transaction->wallet_id,
-                'currency' => $transaction->currency,
-            ],
-            'wallets' => $wallets,  // Вернуть массив всех кошельков
-        ], 201);
+    // Adjust the wallet balance
+    if ($isExpense) {
+        // Deduct the amount for an expense
+        $wallet->balance -= abs($validated['amount']);
+    } else {
+        // Add the amount for income
+        $wallet->balance += $validated['amount'];
     }
 
-    public function update(Request $request, Transaction $transaction)
-    {
-        $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'wallet_id' => 'required|exists:wallets,id',
-            'amount' => 'required|numeric',
-            'description' => 'nullable|string',
-            'date' => 'required|date',
-        ]);
-        
-        // Найдите транзакцию
-        $transaction = Transaction::findOrFail($id);
+    $wallet->save(); // Save the updated wallet balance
 
-        // Найдите или создайте категорию
-        $category = Category::firstOrCreate(
-            [
-                'name' => $request->category_name,
-                'user_id' => Auth::id(),
-            ]
-        );
+    // Create the transaction
+    $transaction = Transaction::create([
+        'user_id' => Auth::id(),
+        'category_id' => $category->id,
+        'wallet_id' => $wallet->id,
+        'amount' => $validated['amount'],
+        'description' => $validated['description'],
+        'date' => $validated['date'],
+        'currency' => $wallet->currency,
+    ]);
 
-        $wallet = Wallet::find($request->wallet_id);
+    // Get all wallets for the authorized user
+    $wallets = Wallet::where('user_id', Auth::id())->get();
 
-        // Revert old transaction's effect on wallet
-        if ($transaction->amount < 0) {
-            $wallet->balance += abs($transaction->amount);  // Undo previous expense
+    // Return a response with an array of wallets and the category name
+    return response()->json([
+        'success' => true,
+        'message' => 'Transaction created successfully.',
+        'transaction' => [
+            'amount' => $transaction->amount,
+            'category_name' => $category->name, // Return the category name
+            'wallet_id' => $transaction->wallet_id,
+            'currency' => $transaction->currency,
+        ],
+        'wallets' => $wallets, // Return array of all wallets
+    ], 201);
+}
+
+
+public function update(Request $request, Transaction $transaction)
+{
+    // Validate the incoming request data
+    $validatedData = $request->validate([
+        'category_id' => 'required|exists:categories,id',
+        'wallet_id' => 'required|exists:wallets,id',
+        'amount' => 'required|numeric',
+        'description' => 'nullable|string',
+        'date' => 'required|date',
+    ]);
+
+    // Find the wallet based on the request
+    $wallet = Wallet::findOrFail($validatedData['wallet_id']);
+
+    // Revert the old transaction's effect on the wallet
+    if ($transaction->amount < 0) {
+        $wallet->balance += abs($transaction->amount);  // Undo previous expense
+    } else {
+        $wallet->balance -= $transaction->amount;  // Undo previous income
+    }
+
+    // Check if the new transaction amount is an expense
+    if ($validatedData['amount'] < 0) {
+        if ($wallet->balance >= abs($validatedData['amount'])) {
+            $wallet->balance += $validatedData['amount'];  // Deduct for new expense
         } else {
-            $wallet->balance -= $transaction->amount;  // Undo previous income
+            return response()->json(['error' => 'Insufficient funds in the selected wallet.'], 400);
         }
-    
-        // Apply the new transaction amount to wallet
-        if ($request->amount < 0) {
-            if ($wallet->balance >= abs($request->amount)) {
-                $wallet->balance -= abs($request->amount);  // Deduct for new expense
-            } else {
-                return redirect()->back()->withErrors(['Insufficient funds in the selected wallet.']);
-            }
-        } else {
-            $wallet->balance += $request->amount;  // Add for new income
-        }
-    
-        $wallet->save();
+    } else {
+        $wallet->balance += $validatedData['amount'];  // Add for new income
+    }
 
-        $transaction->update([
-            'category_id' => $request->category_id,
-            'wallet_id' => $wallet->id,
-            'amount' => $request->amount,
-            'description' => $request->description,
-            'date' => $request->date,
-        ]);
+    // Save the updated wallet balance
+    $wallet->save();
 
-        $linkedWallet = Wallet::find($transaction->wallet_id);
+    // Update the transaction with the new data
+    $transaction->update([
+        'category_id' => $validatedData['category_id'],
+        'wallet_id' => $validatedData['wallet_id'], // Use the validated wallet ID
+        'amount' => $validatedData['amount'],
+        'description' => $validatedData['description'],
+        'date' => $validatedData['date'],
+    ]);
 
-        return response()->json([
-            'message' => 'Transaction updated succesfully',
+    // Get the linked wallet for response
+    $linkedWallet = Wallet::find($transaction->wallet_id);
+
+    return response()->json([
+        'message' => 'Transaction updated successfully',
+        'transaction' => [
             'amount' => $transaction->amount,
             'description' => $transaction->description,
             'date' => $transaction->date,
-            'category_name' => $category->name,
+            'category_name' => $transaction->category->name, // Ensure category relationship is loaded
             'wallet' => $linkedWallet,
-        ]);
-    }
+        ],
+    ]);
+}
+
 
     public function destroy(Transaction $transaction)
     {
-
-        $transaction = Transaction::findOrFail($id);
         // Adjust the wallet balance when a transaction is deleted
         $wallet = Wallet::find($transaction->wallet_id);
 
@@ -161,18 +162,16 @@ class TransactionController extends Controller
 
         $wallet->save();
 
-        $linkedWallet = Wallet::find($transaction->wallet_id);
         // Delete the transaction
         $transaction->delete();
 
-        
         return response()->json([
             'message' => 'Transaction deleted successfully.',
             'amount' => $transaction->amount,
             'description' => $transaction->description,
             'date' => $transaction->date,
             'category_name' => $transaction->category->name,
-            'wallet' => $linkedWallet,
+            'wallet' => $wallet,
         ]);
     }
 }
