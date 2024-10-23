@@ -9,24 +9,31 @@ use Illuminate\Support\Facades\Auth;
 
 class WalletController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        // Get the wallets associated with the authenticated user
-        $wallets = Wallet::where('user_id', Auth::id())->get(); 
+        // Get all wallets associated with the authenticated user
+        $wallets = Wallet::where('user_id', Auth::id())->get();
+        $totalBalance = 0;
+        $primaryCurrency = 'EUR'; // Set your primary currency here
 
-        // Calculate the total balance of all the user's wallets
-        $totalBalance = $wallets->sum('balance');
-    
+        // Loop through each wallet and convert balances as necessary
+        foreach ($wallets as $wallet) {
+            // Convert balance to primary currency
+            $convertedBalance = convertCurrency($wallet->balance, $wallet->currency, $primaryCurrency);
+
+            // Sum the converted balances
+            $totalBalance += $convertedBalance;
+        }
+
+        // Prepare the response data
         return response()->json([
             'wallets' => $wallets,
-            'total_balance' => $totalBalance
+            'total_balance' => number_format($totalBalance, 2), // Ensure proper formatting to 2 decimal places
+            'currency' => $primaryCurrency,
         ]);
     }
-    
 
+    
     /**
      * Store a newly created resource in storage.
      */
