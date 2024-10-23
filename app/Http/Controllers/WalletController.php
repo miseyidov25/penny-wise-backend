@@ -72,10 +72,10 @@ class WalletController extends Controller
                 return [
                     'id' => $transaction->id,
                     'amount' => $transaction->amount,
+                    'currency' => $transaction->currency,
                     'description' => $transaction->description,
                     'date' => $transaction->date,
                     'category_name' => $transaction->category->name ?? 'No Category',
-                    'currency' => $transaction->currency,
                 ];
             }),
         ];
