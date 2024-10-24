@@ -197,6 +197,7 @@ class TransactionController extends Controller
     $walletTransactions = $wallet->transactions->map(function($transaction) {
         return [
             'amount' => $transaction->amount,
+            'currency' => $transaction->currency,
             'description' => $transaction->description,
             'date' => $transaction->date,
             'category_name' => $transaction->category->name, // Include the category name
