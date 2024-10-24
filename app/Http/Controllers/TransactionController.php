@@ -86,6 +86,7 @@ class TransactionController extends Controller
         // Format the response to include the category_name for each transaction
         $walletWithTransactions = $wallet->transactions->map(function($transaction) {
             return [
+                'id' => $transaction->id,
                 'amount' => $transaction->amount,
                 'description' => $transaction->description,
                 'date' => $transaction->date,
