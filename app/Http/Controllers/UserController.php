@@ -18,7 +18,8 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'nullable|string|max:255',
             'email' => 'nullable|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:8|confirmed',
+            'current_password' => 'required_with:password|string',
+            'password' => 'nullable|string|min:8|confirmed|required_with:current_password',
         ]);
 
         if ($validator->fails()) {
@@ -36,10 +37,16 @@ class UserController extends Controller
         }
 
         // Check if the password is present and update it
-        if ($request->has('password')) {
+        if ($request->has('password') && !empty($request->password)) {
+            if (!Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'message' => 'The current password is incorrect.'
+                ], 403); // Return error if the current password is incorrect
+            }
+    
+            // If the current password is correct and a new password is provided, set the new password
             $user->password = Hash::make($request->password);
         }
-
         // Save the updated user information
         $user->save();
 
