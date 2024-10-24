@@ -33,3 +33,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/transactions/{transaction}', [TransactionController::class, 'update'])->name('transactions.update');
     Route::delete('/transactions/{transaction}', [TransactionController::class, 'destroy'])->name('transactions.destroy');
 });
+
+
+Route::group(['middleware' => ['role:admin']], function () {
+    Route::get('/admin', [AdminController::class, 'index']);
+});
+
+
+Route::group(['middleware' => ['role:user']], function () {
+    Route::get('/user', [UserController::class, 'index']);
+});
+
+Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+});

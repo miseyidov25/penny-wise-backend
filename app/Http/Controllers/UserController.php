@@ -60,24 +60,25 @@ class UserController extends Controller
     }
 
 
-    // Function to delete user account
-    public function deleteAccount(Request $request)
+    public function destroy($id)
     {
-        $user = auth()->user();
+        // Find the user by ID
+        $user = User::find($id);
 
-        // Log out the user
-        Auth::guard('web')->logout();
+        // Check if the user exists
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], Response::HTTP_NOT_FOUND);
+        }
 
-        $request->session()->invalidate();
+        // Optional: Prevent the admin from deleting themselves
+        if ($user->id === auth()->id()) {
+            return response()->json(['message' => 'You cannot delete your own account.'], Response::HTTP_FORBIDDEN);
+        }
 
-        $request->session()->regenerateToken();
-
-        // Delete the user's account
+        // Delete the user
         $user->delete();
 
-        return response()->json([
-            'message' => 'Account deleted successfully'
-        ], 200);
+        return response()->json(['message' => 'User deleted successfully.'], Response::HTTP_OK);
     }
 
     public function getUser(Request $request)
