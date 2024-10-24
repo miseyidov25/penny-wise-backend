@@ -172,28 +172,52 @@ class TransactionController extends Controller
 
 
     public function destroy(Transaction $transaction)
-    {
-        // Adjust the wallet balance when a transaction is deleted
-        $wallet = Wallet::find($transaction->wallet_id);
+{
+    // Find the wallet associated with the transaction
+    $wallet = Wallet::find($transaction->wallet_id);
 
-        if ($transaction->amount < 0) {
-            $wallet->balance += abs($transaction->amount);  // Undo expense
-        } else {
-            $wallet->balance -= $transaction->amount;  // Undo income
-        }
+    // Adjust the wallet balance when the transaction is deleted
+    if ($transaction->amount < 0) {
+        $wallet->balance += abs($transaction->amount);  // Undo expense
+    } else {
+        $wallet->balance -= $transaction->amount;  // Undo income
+    }
 
-        $wallet->save();
+    // Save the updated wallet balance
+    $wallet->save();
 
-        // Delete the transaction
-        $transaction->delete();
+    // Delete the transaction
+    $transaction->delete();
 
-        return response()->json([
-            'message' => 'Transaction deleted successfully.',
+    // Load the wallet's transactions
+    $wallet->load('transactions.category');  // Eager load the transactions and their categories
+
+    // Format the wallet's transactions, including category name
+    $walletTransactions = $wallet->transactions->map(function($transaction) {
+        return [
+            'amount' => $transaction->amount,
+            'description' => $transaction->description,
+            'date' => $transaction->date,
+            'category_name' => $transaction->category->name, // Include the category name
+        ];
+    });
+
+    // Return the wallet, the wallet's transactions, and the deleted transaction info
+    return response()->json([
+        'message' => 'Transaction deleted successfully.',
+        'deleted_transaction' => [
             'amount' => $transaction->amount,
             'description' => $transaction->description,
             'date' => $transaction->date,
             'category_name' => $transaction->category->name,
-            'wallet' => $wallet,
-        ]);
-    }
+        ],
+        'wallet' => [
+            'id' => $wallet->id,
+            'name' => $wallet->name,
+            'balance' => $wallet->balance,
+            'transactions' => $walletTransactions // Include the wallet's remaining transactions
+        ]
+    ], 200);
+}
+
 }
