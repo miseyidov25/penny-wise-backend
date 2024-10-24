@@ -135,25 +135,12 @@ class WalletController extends Controller
         $wallet->currency = $validated['currency'];
         $wallet->save(); // Save changes
 
-        // Get all wallets associated with the authenticated user
-        $wallets = Wallet::where('user_id', Auth::id())->get();
-        $totalBalance = 0;
-        $primaryCurrency = 'EUR'; // Set your primary currency here
+        // Load the wallet's transactions
+        $wallet->load('transactions'); // This will eager load the transactions relationship
 
-        // Loop through each wallet and convert balances as necessary
-        foreach ($wallets as $w) {
-            // Convert balance to primary currency
-            $convertedBalance = convertCurrency($w->balance, $w->currency, $primaryCurrency);
-
-            // Sum the converted balances
-            $totalBalance += $convertedBalance;
-        }
-
-        // Return all wallets and the total balance in a JSON response
+        // Return the updated wallet with its transactions
         return response()->json([
-            'wallets' => $wallets,
-            'total_balance' => number_format($totalBalance, 2), // Ensure proper formatting to 2 decimal places
-            'currency' => $primaryCurrency,
+            'wallet' => $wallet
         ]);
     }
 
