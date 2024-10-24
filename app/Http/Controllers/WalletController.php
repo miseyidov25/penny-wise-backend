@@ -32,40 +32,40 @@ class WalletController extends Controller
             'currency' => $primaryCurrency,
         ]);
     }
-    
 
+    
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
-        // Get all wallets associated with the authenticated user
-        $wallets = Wallet::where('user_id', Auth::id())->get();
-        $totalBalance = 0;
-        $primaryCurrency = 'EUR'; // Set your primary currency here
-        
-        // Loop through each wallet and convert balances as necessary
-        foreach ($wallets as $wallet) {
-            // Convert balance to primary currency
-            $convertedBalance = convertCurrency($wallet->balance, $wallet->currency, $primaryCurrency);
-        
-            // Sum the converted balances
-            $totalBalance += $convertedBalance;
-        }
-        
         // Validate the request data
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'balance' => 'required|numeric',
             'currency' => 'required|string|size:3',
         ]);
-        
+    
         try {
             // Add the authenticated user's ID to the wallet data
             $validated['user_id'] = Auth::id();
     
             // Create the wallet
             $wallet = Wallet::create($validated);
+    
+            // Get all wallets associated with the authenticated user
+            $wallets = Wallet::where('user_id', Auth::id())->get();
+            $totalBalance = 0;
+            $primaryCurrency = 'EUR'; // Set your primary currency here
+    
+            // Loop through each wallet and convert balances as necessary
+            foreach ($wallets as $w) {
+                // Convert balance to primary currency
+                $convertedBalance = convertCurrency($w->balance, $w->currency, $primaryCurrency);
+    
+                // Sum the converted balances
+                $totalBalance += $convertedBalance;
+            }
     
             // Return a JSON response with the created wallet and a 201 status
             return response()->json([
@@ -80,6 +80,7 @@ class WalletController extends Controller
         }
     }
     
+    
     /**
      * Display the specified resource.
      */
@@ -90,10 +91,10 @@ class WalletController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
         
-        
+        // Загрузите транзакции вместе с категориями
         $wallet->load('transactions.category');
     
-        
+        // Преобразуем данные в удобный формат для ответа
         $walletData = [
             'id' => $wallet->id,
             'name' => $wallet->name,
@@ -163,21 +164,23 @@ class WalletController extends Controller
         if ($wallet->user_id !== Auth::id()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
-    
+
+        // Get the current total balance before deletion
+        $currentTotalBalance = Wallet::where('user_id', Auth::id())->sum('balance');
+
         // Delete the wallet
         $wallet->delete();
-    
+
         // Get all wallets associated with the authenticated user
         $wallets = Wallet::where('user_id', Auth::id())->get();
-    
-        // Calculate the total balance for all wallets
+
+        // Calculate the new total balance for all wallets
         $totalBalance = $wallets->sum('balance');
-    
+
         // Return all wallets and the total balance in a JSON response
         return response()->json([
             'wallets' => $wallets,
-            'total_balance' => $totalBalance,
+            'total_balance' => number_format($totalBalance, 2), // Format the total balance to 2 decimal places
         ]);
     }
-    
 }

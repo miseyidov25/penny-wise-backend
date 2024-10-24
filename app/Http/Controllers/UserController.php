@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
 class UserController extends Controller
 {
@@ -58,9 +61,18 @@ class UserController extends Controller
 
 
     // Function to delete user account
-    public function deleteAccount()
+    public function deleteAccount(Request $request)
     {
         $user = auth()->user();
+
+        // Log out the user
+        Auth::guard('web')->logout();
+
+        $request->session()->invalidate();
+
+        $request->session()->regenerateToken();
+
+        // Delete the user's account
         $user->delete();
 
         return response()->json([
