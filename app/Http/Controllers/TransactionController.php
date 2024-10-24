@@ -207,6 +207,7 @@ class TransactionController extends Controller
         'message' => 'Transaction deleted successfully.',
         'deleted_transaction' => [
             'amount' => $transaction->amount,
+            'currency' => $transaction->currency,
             'description' => $transaction->description,
             'date' => $transaction->date,
             'category_name' => $transaction->category->name,
@@ -215,6 +216,7 @@ class TransactionController extends Controller
             'id' => $wallet->id,
             'name' => $wallet->name,
             'balance' => $wallet->balance,
+            'currency' => $wallet->currency,
             'transactions' => $walletTransactions // Include the wallet's remaining transactions
         ]
     ], 200);
