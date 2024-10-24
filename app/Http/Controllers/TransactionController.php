@@ -102,6 +102,7 @@ class TransactionController extends Controller
                 'id' => $wallet->id,
                 'name' => $wallet->name,
                 'balance' => $wallet->balance,
+                'currency' => $wallet->currency,
                 'transactions' => $walletWithTransactions // Include transactions with category_name
             ]
         ], 201);
