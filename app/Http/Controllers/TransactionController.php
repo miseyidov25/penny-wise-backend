@@ -17,6 +17,7 @@ class TransactionController extends Controller
         return response()->json($transactions->map(function($transaction) {
             return [
                 'id' => $transaction->id,
+                'wallet_id' => $transaction->wallet_id,
                 'amount' => $transaction->amount,
                 'description' => $transaction->description,
                 'date' => $transaction->date,
