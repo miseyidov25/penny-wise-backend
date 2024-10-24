@@ -32,8 +32,8 @@ class WalletController extends Controller
             'currency' => $primaryCurrency,
         ]);
     }
-    
 
+    
     /**
      * Store a newly created resource in storage.
      */
@@ -72,7 +72,7 @@ class WalletController extends Controller
                 'wallets' => $wallets,
                 'total_balance' => number_format($totalBalance, 2), // Ensure proper formatting to 2 decimal places
                 'currency' => $primaryCurrency,
-            ], 201);
+            ]);
     
         } catch (QueryException $e) {
             // Handle the case where a wallet with the same name already exists
@@ -91,10 +91,10 @@ class WalletController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
         
-        
+        // Загрузите транзакции вместе с категориями
         $wallet->load('transactions.category');
     
-        
+        // Преобразуем данные в удобный формат для ответа
         $walletData = [
             'id' => $wallet->id,
             'name' => $wallet->name,
@@ -123,13 +123,13 @@ class WalletController extends Controller
         if ($wallet->user_id !== Auth::id()) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
-
+    
         // Validate the incoming request for name and currency only
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'currency' => 'required|string|size:3',
         ]);
-
+    
         // Update the wallet with the new name and currency
         $wallet->name = $validated['name'];
         $wallet->currency = $validated['currency'];
@@ -143,6 +143,7 @@ class WalletController extends Controller
             'wallet' => $wallet
         ]);
     }
+    
 
     public function destroy(Wallet $wallet)
     {
