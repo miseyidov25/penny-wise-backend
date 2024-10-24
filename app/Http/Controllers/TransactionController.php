@@ -27,69 +27,85 @@ class TransactionController extends Controller
     }
 
     public function store(Request $request)
-{
-    // Validate incoming request
-    $validated = $request->validate([
-        'wallet_id' => 'required|exists:wallets,id',
-        'category_name' => 'required|string|max:255', // Validate category_name
-        'amount' => 'required|numeric',
-        'description' => 'nullable|string',
-        'date' => 'required|date',
-    ]);
+    {
+        // Validate incoming request
+        $validated = $request->validate([
+            'wallet_id' => 'required|exists:wallets,id',
+            'category_name' => 'required|string|max:255', // Validate category_name
+            'amount' => 'required|numeric',
+            'description' => 'nullable|string',
+            'date' => 'required|date',
+        ]);
 
-    // Ensure the wallet belongs to the authenticated user
-    $wallet = Wallet::where('id', $validated['wallet_id'])
-                    ->where('user_id', Auth::id())
-                    ->first();
+        // Ensure the wallet belongs to the authenticated user
+        $wallet = Wallet::where('id', $validated['wallet_id'])
+                        ->where('user_id', Auth::id())
+                        ->first();
 
-    // Check if the wallet exists and belongs to the user
-    if (!$wallet) {
-        return response()->json(['error' => 'Unauthorized: Wallet does not belong to the authenticated user.'], 403);
+        // Check if the wallet exists and belongs to the user
+        if (!$wallet) {
+            return response()->json(['error' => 'Unauthorized: Wallet does not belong to the authenticated user.'], 403);
+        }
+
+        // Ensure the category belongs to the authenticated user or create it if it doesn't exist
+        $category = Category::firstOrCreate(
+            [
+                'name' => $validated['category_name'],
+                'user_id' => Auth::id(), // Associate the category with the current user
+            ]
+        );
+
+        // Check if it's an expense or income (assuming negative amount for expenses)
+        $isExpense = $validated['amount'] < 0;
+
+        // Adjust the wallet balance
+        if ($isExpense) {
+            // Deduct the amount for an expense
+            $wallet->balance -= abs($validated['amount']);
+        } else {
+            // Add the amount for income
+            $wallet->balance += $validated['amount'];
+        }
+
+        $wallet->save(); // Save the updated wallet balance
+
+        // Create the transaction
+        $transaction = Transaction::create([
+            'user_id' => Auth::id(),
+            'category_id' => $category->id, // Use the category_id from firstOrCreate
+            'wallet_id' => $wallet->id,
+            'amount' => $validated['amount'],
+            'description' => $validated['description'],
+            'date' => $validated['date'],
+            'currency' => $wallet->currency,
+        ]);
+
+        // Load the wallet's transactions and eager load category name for each transaction
+        $wallet->load(['transactions.category']);  // Assuming transactions have a category relationship
+
+        // Format the response to include the category_name for each transaction
+        $walletWithTransactions = $wallet->transactions->map(function($transaction) {
+            return [
+                'amount' => $transaction->amount,
+                'description' => $transaction->description,
+                'date' => $transaction->date,
+                'currency' => $transaction->currency,
+                'category_name' => $transaction->category->name,  // Include the category name
+            ];
+        });
+
+        // Return the wallet with its transactions
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaction created successfully.',
+            'wallet' => [
+                'id' => $wallet->id,
+                'name' => $wallet->name,
+                'balance' => $wallet->balance,
+                'transactions' => $walletWithTransactions // Include transactions with category_name
+            ]
+        ], 201);
     }
-
-    // Ensure the category belongs to the authenticated user or create it if it doesn't exist
-    $category = Category::firstOrCreate(
-        [
-            'name' => $validated['category_name'],
-            'user_id' => Auth::id(), // Associate the category with the current user
-        ]
-    );
-
-    // Check if it's an expense or income (assuming negative amount for expenses)
-    $isExpense = $validated['amount'] < 0;
-
-    // Adjust the wallet balance
-    if ($isExpense) {
-        // Deduct the amount for an expense
-        $wallet->balance -= abs($validated['amount']);
-    } else {
-        // Add the amount for income
-        $wallet->balance += $validated['amount'];
-    }
-
-    $wallet->save(); // Save the updated wallet balance
-
-    // Create the transaction
-    $transaction = Transaction::create([
-        'user_id' => Auth::id(),
-        'category_id' => $category->id, // Use the category_id from firstOrCreate
-        'wallet_id' => $wallet->id,
-        'amount' => $validated['amount'],
-        'description' => $validated['description'],
-        'date' => $validated['date'],
-        'currency' => $wallet->currency,
-    ]);
-
-    // Load the wallet's transactions (eager load)
-    $wallet->load('transactions');
-
-    // Return the wallet with its transactions
-    return response()->json([
-        'success' => true,
-        'message' => 'Transaction created successfully.',
-        'wallet' => $wallet, // Return the wallet
-    ], 201);
-}
     
 
 
