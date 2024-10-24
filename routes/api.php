@@ -6,6 +6,7 @@ use App\Http\Controllers\WalletController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
+use App\Models\User;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user', [UserController::class, 'updateProfile']);
@@ -33,3 +34,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/transactions/{transaction}', [TransactionController::class, 'update'])->name('transactions.update');
     Route::delete('/transactions/{transaction}', [TransactionController::class, 'destroy'])->name('transactions.destroy');
 });
+
+Route::get('/users', function () {
+    return response()->json(User::all());
+})->name('users.get');
+
+
+    // Route to delete a user by ID
+Route::delete('/users/{user}', function (User $user) {
+    // Delete the user
+    $user->delete();
+
+    $users = User::all();
+
+    return response()->json([
+        'message' => 'User deleted successfully.',
+        'users' => $users
+    ], 200);
+})->name('users.delete');

@@ -17,6 +17,7 @@ class TransactionController extends Controller
         return response()->json($transactions->map(function($transaction) {
             return [
                 'id' => $transaction->id,
+                'wallet_id' => $transaction->wallet_id,
                 'amount' => $transaction->amount,
                 'description' => $transaction->description,
                 'date' => $transaction->date,
@@ -35,17 +36,17 @@ class TransactionController extends Controller
             'description' => 'nullable|string',
             'date' => 'required|date',
         ]);
-    
+
         // Ensure the wallet belongs to the authenticated user
         $wallet = Wallet::where('id', $validated['wallet_id'])
                         ->where('user_id', Auth::id())
                         ->first();
-    
+
         // Check if the wallet exists and belongs to the user
         if (!$wallet) {
             return response()->json(['error' => 'Unauthorized: Wallet does not belong to the authenticated user.'], 403);
         }
-    
+
         // Ensure the category belongs to the authenticated user or create it if it doesn't exist
         $category = Category::firstOrCreate(
             [
@@ -53,10 +54,10 @@ class TransactionController extends Controller
                 'user_id' => Auth::id(), // Associate the category with the current user
             ]
         );
-    
+
         // Check if it's an expense or income (assuming negative amount for expenses)
         $isExpense = $validated['amount'] < 0;
-    
+
         // Adjust the wallet balance
         if ($isExpense) {
             // Deduct the amount for an expense
@@ -65,9 +66,9 @@ class TransactionController extends Controller
             // Add the amount for income
             $wallet->balance += $validated['amount'];
         }
-    
+
         $wallet->save(); // Save the updated wallet balance
-    
+
         // Create the transaction
         $transaction = Transaction::create([
             'user_id' => Auth::id(),
@@ -78,21 +79,33 @@ class TransactionController extends Controller
             'date' => $validated['date'],
             'currency' => $wallet->currency,
         ]);
-    
-        // Get all wallets for the authorized user
-        $wallets = Wallet::where('user_id', Auth::id())->get();
-    
-        // Return a response with an array of wallets and the category name
+
+        // Load the wallet's transactions and eager load category name for each transaction
+        $wallet->load(['transactions.category']);  // Assuming transactions have a category relationship
+
+        // Format the response to include the category_name for each transaction
+        $walletWithTransactions = $wallet->transactions->map(function($transaction) {
+            return [
+                'id' => $transaction->id,
+                'amount' => $transaction->amount,
+                'description' => $transaction->description,
+                'date' => $transaction->date,
+                'currency' => $transaction->currency,
+                'category_name' => $transaction->category->name,  // Include the category name
+            ];
+        });
+
+        // Return the wallet with its transactions
         return response()->json([
             'success' => true,
             'message' => 'Transaction created successfully.',
-            'transaction' => [
-                'amount' => $transaction->amount,
-                'category_name' => $category->name, // Return the category name
-                'wallet_id' => $transaction->wallet_id,
-                'currency' => $transaction->currency,
-            ],
-            'wallets' => $wallets, // Return array of all wallets
+            'wallet' => [
+                'id' => $wallet->id,
+                'name' => $wallet->name,
+                'balance' => $wallet->balance,
+                'currency' => $wallet->currency,
+                'transactions' => $walletWithTransactions // Include transactions with category_name
+            ]
         ], 201);
     }
     
@@ -161,28 +174,56 @@ class TransactionController extends Controller
 
 
     public function destroy(Transaction $transaction)
-    {
-        // Adjust the wallet balance when a transaction is deleted
-        $wallet = Wallet::find($transaction->wallet_id);
+{
+    // Find the wallet associated with the transaction
+    $wallet = Wallet::find($transaction->wallet_id);
 
-        if ($transaction->amount < 0) {
-            $wallet->balance += abs($transaction->amount);  // Undo expense
-        } else {
-            $wallet->balance -= $transaction->amount;  // Undo income
-        }
+    // Adjust the wallet balance when the transaction is deleted
+    if ($transaction->amount < 0) {
+        $wallet->balance += abs($transaction->amount);  // Undo expense
+    } else {
+        $wallet->balance -= $transaction->amount;  // Undo income
+    }
 
-        $wallet->save();
+    // Save the updated wallet balance
+    $wallet->save();
 
-        // Delete the transaction
-        $transaction->delete();
+    // Delete the transaction
+    $transaction->delete();
 
-        return response()->json([
-            'message' => 'Transaction deleted successfully.',
+    // Load the wallet's transactions
+    $wallet->load('transactions.category');  // Eager load the transactions and their categories
+
+    // Format the wallet's transactions, including category name
+    $walletTransactions = $wallet->transactions->map(function($transaction) {
+        return [
+            'id' => $transaction->id,
             'amount' => $transaction->amount,
+            'currency' => $transaction->currency,
+            'description' => $transaction->description,
+            'date' => $transaction->date,
+            'category_name' => $transaction->category->name, // Include the category name
+        ];
+    });
+
+    // Return the wallet, the wallet's transactions, and the deleted transaction info
+    return response()->json([
+        'message' => 'Transaction deleted successfully.',
+        'deleted_transaction' => [
+            'amount' => $transaction->amount,
+            'currency' => $transaction->currency,
             'description' => $transaction->description,
             'date' => $transaction->date,
             'category_name' => $transaction->category->name,
-            'wallet' => $wallet,
-        ]);
-    }
+        ],
+        'wallet' => [
+            'id' => $wallet->id,
+            'name' => $wallet->name,
+            'balance' => $wallet->balance,
+            'currency' => $wallet->currency,
+            'transactions' => $walletTransactions // Include the wallet's remaining transactions
+        ]
+    ], 200);
+}
+
 }
