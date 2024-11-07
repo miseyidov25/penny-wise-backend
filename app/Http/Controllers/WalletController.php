@@ -5,56 +5,62 @@ namespace App\Http\Controllers;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
+use App\Services\CurrencyConversionService; // Import the service
 
 class WalletController extends Controller
 {
-    public function index()
-{
-    // Get all wallets associated with the authenticated user
-    $wallets = Wallet::where('user_id', Auth::id())->get();
-    $totalBalance = 0;
-    $primaryCurrency = 'EUR'; // Set your primary currency here
+    protected $currencyService;
 
-    $walletData = [];
-
-    // Loop through each wallet and convert balances as necessary
-    foreach ($wallets as $wallet) {
-        // Convert balance to primary currency
-        $convertedBalance = convertCurrency($wallet->balance, $wallet->currency, $primaryCurrency);
-
-        // Sum the converted balances
-        $totalBalance += $convertedBalance;
-
-        // Prepare data for each wallet
-        $walletData[] = [
-            'id' => $wallet->id,
-            'name' => $wallet->name,
-            'balance' => $wallet->balance,
-            'currency' => $wallet->currency,
-            'transactions' => $wallet->transactions->map(function ($transaction) {
-                return [
-                    'id' => $transaction->id,
-                    'amount' => $transaction->amount,
-                    'currency' => $transaction->currency,
-                    'description' => $transaction->description,
-                    'date' => $transaction->date,
-                    'category_name' => $transaction->category->name ?? 'No Category',
-                ];
-            }),
-        ];
+    public function __construct(CurrencyConversionService $currencyService)
+    {
+        $this->currencyService = $currencyService;
     }
 
-    // Prepare the response data
-    return response()->json([
-        'wallets' => $walletData, // Return array of all wallets
-        'total_balance' => number_format($totalBalance, 2), // Ensure proper formatting to 2 decimal places
-        'currency' => $primaryCurrency,
-    ]);
-}
+    public function index()
+    {
+        // Get all wallets associated with the authenticated user
+        $wallets = Wallet::where('user_id', Auth::id())->get();
+        $totalBalance = 0;
+        $primaryCurrency = 'EUR'; // Set your primary currency here
+
+        $walletData = [];
+
+        // Loop through each wallet and convert balances as necessary
+        foreach ($wallets as $wallet) {
+            // Convert balance to primary currency using the service
+            $convertedBalance = $this->currencyService->convertForWallet($wallet->currency, $primaryCurrency, $wallet->balance);
+
+            // Sum the converted balances
+            $totalBalance += $convertedBalance;
+
+            // Prepare data for each wallet
+            $walletData[] = [
+                'id' => $wallet->id,
+                'name' => $wallet->name,
+                'balance' => $wallet->balance,
+                'currency' => $wallet->currency,
+                'transactions' => $wallet->transactions->map(function ($transaction) {
+                    return [
+                        'id' => $transaction->id,
+                        'amount' => $transaction->amount,
+                        'currency' => $transaction->currency,
+                        'description' => $transaction->description,
+                        'date' => $transaction->date,
+                        'category_name' => $transaction->category->name ?? 'No Category',
+                    ];
+                }),
+            ];
+        }
+
+        // Prepare the response data
+        return response()->json([
+            'wallets' => $walletData,
+            'total_balance' => number_format($totalBalance, 2), // Format to 2 decimal places
+            'currency' => $primaryCurrency,
+        ]);
+    }
 
 
-    
     /**
      * Store a newly created resource in storage.
      */
@@ -66,40 +72,34 @@ class WalletController extends Controller
             'balance' => 'required|numeric',
             'currency' => 'required|string|size:3',
         ]);
-    
+
         try {
-            // Add the authenticated user's ID to the wallet data
             $validated['user_id'] = Auth::id();
-    
+
             // Create the wallet
             $wallet = Wallet::create($validated);
-    
+
             // Get all wallets associated with the authenticated user
             $wallets = Wallet::where('user_id', Auth::id())->get();
             $totalBalance = 0;
-            $primaryCurrency = 'EUR'; // Set your primary currency here
-    
-            // Loop through each wallet and convert balances as necessary
+            $primaryCurrency = 'EUR';
+
             foreach ($wallets as $w) {
-                // Convert balance to primary currency
-                $convertedBalance = convertCurrency($w->balance, $w->currency, $primaryCurrency);
-    
-                // Sum the converted balances
+                $convertedBalance = $this->currencyService->convertForWallet($w->currency, $primaryCurrency, $w->balance);
                 $totalBalance += $convertedBalance;
             }
-    
-            // Return a JSON response with the created wallet and a 201 status
+
             return response()->json([
-                'wallets' => $wallets,
-                'total_balance' => number_format($totalBalance, 2), // Ensure proper formatting to 2 decimal places
+                'wallet' => $wallet,
+                'total_balance' => number_format($totalBalance, 2),
                 'currency' => $primaryCurrency,
             ]);
-    
+
         } catch (QueryException $e) {
-            // Handle the case where a wallet with the same name already exists
             return response()->json(['error' => 'A wallet with this name already exists'], 409);
         }
     }
+
     
     
     /**
@@ -197,10 +197,13 @@ class WalletController extends Controller
         // Calculate the new total balance for all wallets
         $totalBalance = $wallets->sum('balance');
 
+        $primaryCurrency = 'EUR';
+
         // Return all wallets and the total balance in a JSON response
         return response()->json([
             'wallets' => $wallets,
             'total_balance' => number_format($totalBalance, 2), // Format the total balance to 2 decimal places
+            'currency' => $primaryCurrency,
         ]);
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
 use App\Models\User;
+use App\Http\Controllers\CurrencyController;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user', [UserController::class, 'updateProfile']);
@@ -52,3 +53,5 @@ Route::delete('/users/{user}', function (User $user) {
         'users' => $users
     ], 200);
 })->name('users.delete');
+
+Route::get('/convert-currency', [CurrencyController::class, 'convertCurrency']);
