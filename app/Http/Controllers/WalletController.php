@@ -55,7 +55,7 @@ class WalletController extends Controller
         // Prepare the response data
         return response()->json([
             'wallets' => $walletData,
-            'total_balance' => number_format($totalBalance, 2), // Format to 2 decimal places
+            'total_balance' => round($totalBalance, 2), // Format to 2 decimal places
             'currency' => $primaryCurrency,
         ]);
     }
@@ -91,7 +91,7 @@ class WalletController extends Controller
 
             return response()->json([
                 'wallet' => $wallet,
-                'total_balance' => number_format($totalBalance, 2),
+                'total_balance' => round($totalBalance, 2),
                 'currency' => $primaryCurrency,
             ]);
 
@@ -202,7 +202,7 @@ class WalletController extends Controller
         // Return all wallets and the total balance in a JSON response
         return response()->json([
             'wallets' => $wallets,
-            'total_balance' => number_format($totalBalance, 2), // Format the total balance to 2 decimal places
+            'total_balance' => round($totalBalance, 2), // Format the total balance to 2 decimal places
             'currency' => $primaryCurrency,
         ]);
     }
