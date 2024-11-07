@@ -7,95 +7,96 @@ use App\Models\Category;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Services\CurrencyConversionService; // Import the service
 
 class TransactionController extends Controller
 {
+    protected $currencyService;
+
+    public function __construct(CurrencyConversionService $currencyService)
+    {
+        $this->currencyService = $currencyService;
+    }
+
     public function index()
     {
         $transactions = Transaction::with('category')->where('user_id', Auth::id())->get();
+        $primaryCurrency = 'EUR'; // Primary currency for display
 
-        return response()->json($transactions->map(function($transaction) {
+        return response()->json($transactions->map(function ($transaction) use ($primaryCurrency) {
+            $convertedAmount = $this->currencyService->convertForWallet($transaction->currency, $primaryCurrency, $transaction->amount);
             return [
                 'id' => $transaction->id,
                 'wallet_id' => $transaction->wallet_id,
-                'amount' => $transaction->amount,
+                'amount' => number_format($convertedAmount, 2),
+                'currency' => $primaryCurrency,
                 'description' => $transaction->description,
                 'date' => $transaction->date,
-                'category_name' => $transaction->category ? $transaction->category->name : null, // Получаем имя категории
+                'category_name' => $transaction->category ? $transaction->category->name : null,
             ];
         }));
     }
 
+
     public function store(Request $request)
     {
-        // Validate incoming request
         $validated = $request->validate([
             'wallet_id' => 'required|exists:wallets,id',
-            'category_name' => 'required|string|max:255', // Validate category_name
+            'category_name' => 'required|string|max:255',
             'amount' => 'required|numeric',
             'description' => 'nullable|string',
             'date' => 'required|date',
         ]);
 
-        // Ensure the wallet belongs to the authenticated user
         $wallet = Wallet::where('id', $validated['wallet_id'])
                         ->where('user_id', Auth::id())
                         ->first();
 
-        // Check if the wallet exists and belongs to the user
         if (!$wallet) {
             return response()->json(['error' => 'Unauthorized: Wallet does not belong to the authenticated user.'], 403);
         }
 
-        // Ensure the category belongs to the authenticated user or create it if it doesn't exist
-        $category = Category::firstOrCreate(
-            [
-                'name' => $validated['category_name'],
-                'user_id' => Auth::id(), // Associate the category with the current user
-            ]
-        );
+        $category = Category::firstOrCreate([
+            'name' => $validated['category_name'],
+            'user_id' => Auth::id(),
+        ]);
 
-        // Check if it's an expense or income (assuming negative amount for expenses)
         $isExpense = $validated['amount'] < 0;
 
-        // Adjust the wallet balance
+        // Convert transaction amount to wallet's currency if necessary
+        $convertedAmount = $this->currencyService->convertForWallet('EUR', $wallet->currency, $validated['amount']);
+
         if ($isExpense) {
-            // Deduct the amount for an expense
-            $wallet->balance -= abs($validated['amount']);
+            $wallet->balance -= abs($convertedAmount);
         } else {
-            // Add the amount for income
-            $wallet->balance += $validated['amount'];
+            $wallet->balance += $convertedAmount;
         }
 
-        $wallet->save(); // Save the updated wallet balance
+        $wallet->save();
 
-        // Create the transaction
         $transaction = Transaction::create([
             'user_id' => Auth::id(),
-            'category_id' => $category->id, // Use the category_id from firstOrCreate
+            'category_id' => $category->id,
             'wallet_id' => $wallet->id,
-            'amount' => $validated['amount'],
+            'amount' => $convertedAmount,
             'description' => $validated['description'],
             'date' => $validated['date'],
             'currency' => $wallet->currency,
         ]);
 
-        // Load the wallet's transactions and eager load category name for each transaction
-        $wallet->load(['transactions.category']);  // Assuming transactions have a category relationship
+        $wallet->load(['transactions.category']);
 
-        // Format the response to include the category_name for each transaction
-        $walletWithTransactions = $wallet->transactions->map(function($transaction) {
+        $walletWithTransactions = $wallet->transactions->map(function ($transaction) {
             return [
                 'id' => $transaction->id,
                 'amount' => $transaction->amount,
                 'description' => $transaction->description,
                 'date' => $transaction->date,
                 'currency' => $transaction->currency,
-                'category_name' => $transaction->category->name,  // Include the category name
+                'category_name' => $transaction->category->name,
             ];
         });
 
-        // Return the wallet with its transactions
         return response()->json([
             'success' => true,
             'message' => 'Transaction created successfully.',
@@ -104,14 +105,10 @@ class TransactionController extends Controller
                 'name' => $wallet->name,
                 'balance' => $wallet->balance,
                 'currency' => $wallet->currency,
-                'transactions' => $walletWithTransactions // Include transactions with category_name
+                'transactions' => $walletWithTransactions
             ]
         ], 201);
     }
-    
-
-
-
 
     public function update(Request $request, Transaction $transaction)
     {

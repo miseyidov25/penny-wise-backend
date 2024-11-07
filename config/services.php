@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'currencyapi' => [
+        'key' => env('CURRENCY_API_KEY'),
+        'url' => 'https://api.currencyapi.com/v3/latest'
+    ],
+    
+
 ];
