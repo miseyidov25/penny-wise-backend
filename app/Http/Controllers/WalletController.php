@@ -93,7 +93,7 @@ class WalletController extends Controller
                 $convertedBalance = $this->currencyService->convertForWallet($w->currency, $primaryCurrency, $w->balance);
                 $totalBalance += $convertedBalance;
             }
-
+          
             // Загрузите транзакции вместе с категориями
             $wallet->load('transactions.category');
         
