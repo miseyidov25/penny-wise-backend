@@ -139,43 +139,44 @@ class WalletController extends Controller
      * Update the specified resource in storage.
      */
     public function update(Request $request, Wallet $wallet)
-{
-    // Ensure the wallet belongs to the authenticated user
-    if ($wallet->user_id !== Auth::id()) {
-        return response()->json(['error' => 'Unauthorized'], 403);
-    }
-
-    // Validate the incoming request for name and currency only
-    $validated = $request->validate([
-        'name' => 'required|string|max:255',
-        'currency' => 'required|string|size:3',
-    ]);
-
-    // Check if the currency has changed
-    $oldCurrency = $wallet->currency;
-    $newCurrency = $validated['currency'];
-
-    // Update the wallet with the new name and currency
-    $wallet->name = $validated['name'];
-    $wallet->currency = $newCurrency;
-    $wallet->save(); // Save changes
-
-    // If the currency has changed, update the currency in all related transactions
-    if ($oldCurrency !== $newCurrency) {
-        Transaction::where('wallet_id', $wallet->id)
-            ->update(['currency' => $newCurrency]); // Update currency for all transactions
-    }
-
-    // Load the wallet's transactions
-    $wallet->load('transactions'); // Eager load the transactions relationship
-
-    // Return the updated wallet with its transactions
-    return response()->json([
-        'wallet' => $wallet, // The updated wallet with transactions
-    ]);
-}
-
+    {
+        // Ensure the wallet belongs to the authenticated user
+        if ($wallet->user_id !== Auth::id()) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
     
+        // Validate the incoming request for name and currency
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'currency' => 'required|string|size:3',
+        ]);
+    
+        // Update the wallet with the new name and currency
+        $wallet->name = $validated['name'];
+        $newCurrency = $validated['currency'];
+        
+        // Get the current currency of the wallet
+        $currentCurrency = $wallet->currency;
+    
+        // Update the wallet currency
+        $wallet->currency = $newCurrency;
+        $wallet->save(); // Save changes
+    
+        // Update all associated transactions with the new currency
+        foreach ($wallet->transactions as $transaction) {
+            // You may need to implement a currency conversion function if applicable
+            $transaction->currency = $newCurrency;
+            $transaction->save(); // Save the updated transaction
+        }
+    
+        // Load the wallet's transactions
+        $wallet->load('transactions'); // Eager load the transactions relationship
+    
+        // Return the updated wallet with its transactions
+        return response()->json([
+            'wallet' => $wallet
+        ]);
+    }
 
     public function destroy(Wallet $wallet)
     {
