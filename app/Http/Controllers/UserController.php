@@ -94,7 +94,6 @@ class UserController extends Controller
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at,
             'role' => $user->role,
-            'primary_currency' => $user->primary_currency, // Include primary_currency
         ]);
     }
 }
