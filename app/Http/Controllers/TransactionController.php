@@ -46,8 +46,8 @@ class TransactionController extends Controller
             'amount' => [
                 'required',
                 'numeric',
-                'min:-100000000',
-                'max:100000000',
+                'min:-99999999',
+                'max:99999999',
                 function ($attribute, $value, $fail) {
                     if ($value == 0) {
                         $fail('The amount cannot be zero.');
